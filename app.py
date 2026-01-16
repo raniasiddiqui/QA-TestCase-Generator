@@ -349,10 +349,11 @@ class PlannerAgentOSS(GroqOSSAgent):
         - Sources (Any system or Database used to confirm expected results if applicable. Where this is not applicable, write 'N/A') 
         - Expected Result (Clear pass/fail criteria)
         - Data Correctness Checked (Yes/No if applicable. If not applicable, write 'N/A')
-        - Release/Platform Version (Yes/No if applicable. If not applicable, write 'N/A')
+        - Release/Platform Version (Web/Mobile/IOS/Android etc. If not applicable, write 'N/A')
         - Automation Possibility (Yes/No)
         - Testing Type (Indicate type, e.g., Functional, Negative, Boundary, Performance, Security, Integration, Usability, Regression, Smoke, Sanity, Database, End-to-End, Exploratory)
         - Priority (High, Medium, Low)
+        - Testing Phase : QA 
         ALWAYS WITH EACH TEST CASE:
         OUTPUT the test cases in the following format:
         STRICTLY ADHERE TO THIS FORMAT:
@@ -367,13 +368,14 @@ class PlannerAgentOSS(GroqOSSAgent):
         - Sources (if applicable, Type 'N/A' if there is none for a specific case)
         - Expected Result
         - Data Correctness Checked (if applicable, Type 'N/A' if there is none for a specific case)
-        - Release/Platform Version (if applicable, Type 'N/A' if there is none for a specific case)
+        - Release/Platform Version (Web/Mobile/IOS/Android etc. If not applicable, write 'N/A')
         - Automation Possibility
         - Testing Type
         - Priority
+        - Testing Phase : QA
         Guidelines:
         
-        1.  Use the exact sub-headings: `Test Case ID`, `High Level Feature`, `Feature Name`, `Test Scenario`,`Test Case`,`Test Case Description`, `Step-by-step actions`,`Possible Values`, `Sources`, `Expected Result`, `Data Correctness Checked`, `Release/Platform Version`, `Automation Possibility`, `Testing Type`, and `Priority`.
+        1.  Use the exact sub-headings: `Test Case ID`, `High Level Feature`, `Feature Name`, `Test Scenario`,`Test Case`,`Test Case Description`, `Step-by-step actions`,`Possible Values`, `Sources`, `Expected Result`, `Data Correctness Checked`, `Release/Platform Version`, `Automation Possibility`, `Testing Type`, `Priority` and `Testing Phase`.
         2.  Number the Test Case ID sequentially starting from 1 (e.g., TC-1, TC-2, etc.).
         3. The fields `Test Case ID`, `High Level Feature`, `Feature Name`, `Test Scenario`,`Test Case`,`Test Case Description`, `Possible Values`, `Sources`, `Expected Result`, `Data Correctness Checked`, `Release/Platform Version`, `Automation Possibility`, `Testing Type`, and `Priority` MUST be single lines using the bullet (`*`) prefix.
         4. The steps under `Step-by-step actions` should not be a numbered list, instead a paragraph with all steps in a sequence without any numbering or bullet points.
@@ -446,7 +448,8 @@ def parse_and_export_testcases(test_cases_str: str):
             'Release/Platform Version': '',
             'Automation Possibility': '',
             'Testing_Type': '',
-            'Priority': ''
+            'Priority': '',
+            'Testing Phase': ''
         }
 
         # Try to find the keys. Relaxed the regex to not require '-'
@@ -476,6 +479,8 @@ def parse_and_export_testcases(test_cases_str: str):
     'Automation Possibility': r'[o\*-]?\s*(?:\*\*)?Automation\s*Possibility(?:\*\*)?\s*:\s*(.+?)(?=\n\s*[o\*-]|\Z)',
     'Testing_Type': r'[o\*-]\s*(?:\*\*)?Testing\s*Type(?:\*\*)?\s*:\s*(.+?)(?=\n\s*[o\*-]|\Z)',
     'Priority': r'[o\*-]?\s*(?:\*\*)?Priority(?:\*\*)?\s*:\s*(.+?)(?=\n\s*[o\*-]|\Z)',
+    'Testing Phase': r'[o\*-]?\s*(?:\*\*)?Testing\s*Phase(?:\*\*)?\s*:\s*(.+?)(?=\n\s*[o\*-]|\Z)',
+
 }
 
 
@@ -610,8 +615,9 @@ async def run_feedback_generation(feedback_prompt, status_placeholder):
         f"- Automation Possibility\n"
         f"- Testing Type\n"
         f"- Priority\n\n"
+        f"- Testing Phase\n: QA\n"
         f"**GUIDELINES:**\n"
-        f"- Use the exact sub-headings: `Test Case ID`, `High Level Feature`, `Feature Name`, `Test Scenario`,`Test Case`,`Test Case Description`, `Step-by-step actions`,`Possible Values`, `Sources`, `Expected Result`, `Data Correctness Checked`, `Release/Platform Version`, `Automation Possibility`, `Testing Type`, and `Priority`.\n"
+        f"- Use the exact sub-headings: `Test Case ID`, `High Level Feature`, `Feature Name`, `Test Scenario`,`Test Case`,`Test Case Description`, `Step-by-step actions`,`Possible Values`, `Sources`, `Expected Result`, `Data Correctness Checked`, `Release/Platform Version`, `Automation Possibility`, `Testing Type`, `Priority` and `Testing Phase`.\n"
         f"- The fields `Test Case ID`, `High Level Feature`, `Feature Name`, `Test Scenario`,`Test Case`,`Test Case Description`, `Possible Values`, `Sources`, `Expected Result`, `Data Correctness Checked`, `Release/Platform Version`, `Automation Possibility`, `Testing Type`, and `Priority` MUST be single lines using the bullet (`*`) prefix.\n"
         f"- Number the Test Case ID sequentially starting from the last generated Test Case ID.\n"
         f"- The steps under `Step-by-step actions` should not be a numbered list, instead a paragraph with all steps in a sequence without any numbering or bullet points.\n"
@@ -951,4 +957,5 @@ with output_container:
             st.error("Excel file ('cleaned_generated_test_cases.xlsx') not found. Please try generating again.")
         
         # Display the raw test cases
+
         st.markdown(st.session_state.all_test_cases_str)
