@@ -838,7 +838,7 @@ with st.sidebar:
     feedback_button = st.button("🔄 Generate More Cases", use_container_width=True, type="primary")
 
     st.divider()
-    st.info(f"Using model: **{DEFAULT_GROQ_MODEL}**")
+    # st.info(f"Using model: **{DEFAULT_GROQ_MODEL}**")
 
     st.divider()
     st.header("3. Edit Test Case via Prompt")
@@ -979,4 +979,5 @@ with output_container:
         # Display the raw test cases
 
         st.markdown(st.session_state.all_test_cases_str)
+
 
