@@ -354,7 +354,7 @@ class PlannerAgentOSS(GroqOSSAgent):
         - End-to-End (full user journeys from start to finish)
         - Exploratory (suggest automated heuristics or random inputs for discovery; adapt to automation where feasible)
 
-        Analyze the provided instruction, refined details, and site insights/locator recommendations to generate test cases for as many of these types as applicable. If a type doesn't apply, skip it but aim to cover all possible variations where relevant.
+        Analyze the provided instruction, refined details, and site insights/locator recommendation to generate test cases for as many of these types as applicable. If a type doesn't apply, skip it but aim to cover all possible variations where relevant.
         Prioritize generating multiple test cases per type to cover variations (e.g., different inputs, scenarios).
         For each test case, include:
         Strictly use this criteria for the generated test cases:
@@ -399,6 +399,7 @@ class PlannerAgentOSS(GroqOSSAgent):
         2.  Number the Test Case ID sequentially starting from 1 (e.g., TC-1, TC-2, etc.).
         3. The fields `Test Case ID`, `High Level Feature`, `Feature Name`, `Test Scenario`,`Test Case`,`Test Case Description`, `Possible Values`, `Sources`, `Expected Result`, `Data Correctness Checked`, `Release/Platform Version`, `Automation Possibility`, `Testing Type`, and `Priority` MUST be single lines using the bullet (`*`) prefix.
         4. The steps under `Step-by-step actions` should not be a numbered list, instead a paragraph with all steps in a sequence without any numbering or bullet points.
+        5. The step by step actions or any fields of testcase should NOT include locator reccomendation itself. 
         Please always output the testcases as I described above.
 
         Structure your response with sections for each test type (e.g., ## Functional Test Cases, ## Negative Test Cases, etc.).
@@ -423,6 +424,7 @@ class PlannerAgentOSS(GroqOSSAgent):
         - Generate only the test cases in this step, dont output any refined instruction, explanations, or locator recommendations.
         - First generate test cases for core functionalities, including those derived from site crawling insights, covering basic flow, alternate flow, pre-conditions, post-conditions, validations/rules mentioned in the instruction.
         - Then expand to cover all other types of test cases as mentioned above.
+        - Dont include the locator reccomendation itself in the description of testcases fields, but instead use the insights from crawled data. Dont mention any locators in testcases.
         """
         super().__init__("PlannerOSS", system_message, model_name=DEFAULT_GROQ_MODEL)
 
@@ -710,6 +712,7 @@ You are a precise QA test case editor. Your job is to update **EXACTLY ONE** tes
 5. **NO** explanations or markdown outside the test case.
 6. **DO NOT** modify any other test case.
 7. Keep all existing fields unless the instruction specifically asks to change them.
+8. Dont change any other existing fields of the test case to be editted unless the instruction specifically asks for it. Keep them SAME unless the instruction asks to change a specific field of the testcase
 
 
 **CURRENT TEST CASE:**
@@ -979,5 +982,6 @@ with output_container:
         # Display the raw test cases
 
         st.markdown(st.session_state.all_test_cases_str)
+
 
 
