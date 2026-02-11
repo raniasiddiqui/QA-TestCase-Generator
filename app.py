@@ -670,28 +670,56 @@ import re
 import streamlit as st
 
 
-# -----------------------------
-# Helper: Parse block into dict
-# -----------------------------
-def parse_test_case_block(block: str) -> dict:
+def parse_test_case_block(block: str):
+    """
+    Extract:
+    - fields as dict
+    - original prefix (*, •, -, etc.)
+    - optional numeric heading (e.g., '2.')
+    """
     fields = {}
-    for line in block.split("\n"):
-        line = line.strip()
-        if line.startswith("*") and ":" in line:
-            key, value = line.split(":", 1)
-            clean_key = key.replace("*", "").strip()
-            fields[clean_key] = value.strip()
-    return fields
+    prefix = "*"
+    numeric_header = None
+
+    lines = block.split("\n")
+
+    for line in lines:
+        stripped = line.strip()
+
+        # Detect numeric header like "2."
+        num_match = re.match(r'^(\d+)\.$', stripped)
+        if num_match:
+            numeric_header = num_match.group(1)
+            continue
+
+        # Detect field lines
+        field_match = re.match(r'^([*•-])\s*(.+?):\s*(.*)', stripped)
+        if field_match:
+            prefix = field_match.group(1)
+            key = field_match.group(2).strip()
+            value = field_match.group(3).strip()
+            fields[key] = value
+
+    return fields, prefix, numeric_header
+
 
 
 # -----------------------------
 # Helper: Rebuild block from dict
 # -----------------------------
-def rebuild_test_case_block(fields: dict) -> str:
+def rebuild_test_case_block(fields: dict, prefix: str, numeric_header: str):
     rebuilt = ""
+
+    # Restore numbering like "2."
+    if numeric_header:
+        rebuilt += f"{numeric_header}.\n\n"
+
+    # Restore bullet style
     for key, value in fields.items():
-        rebuilt += f"* {key}: {value}\n"
+        rebuilt += f"{prefix} {key}: {value}\n"
+
     return rebuilt.strip()
+
 
 
 # -----------------------------
@@ -722,7 +750,7 @@ Do not return anything else.
 # -----------------------------
 async def run_edit_generation(test_case_id: str, edit_instruction: str, status_placeholder):
 
-    # Normalize line endings
+    # Normalize text
     st.session_state.all_test_cases_str = (
         st.session_state.all_test_cases_str
         .replace("\r\n", "\n")
@@ -730,11 +758,9 @@ async def run_edit_generation(test_case_id: str, edit_instruction: str, status_p
         .strip() + "\n"
     )
 
-    st.session_state.all_test_cases_str_before_edit = st.session_state.all_test_cases_str
-
     status_placeholder.update(label="🔍 Searching for test case...")
 
-    pattern = rf'(\*\s*Test Case ID:\s*{re.escape(test_case_id.strip())}.*?)(?=\n\*\s*Test Case ID:|\Z)'
+    pattern = rf'(\d+\.\s*\n\s*\n)?(\s*[*•-]\s*Test Case ID:\s*{re.escape(test_case_id.strip())}.*?)(?=\n\d+\.|\Z)'
 
     match = re.search(pattern, st.session_state.all_test_cases_str, re.DOTALL)
 
@@ -742,29 +768,26 @@ async def run_edit_generation(test_case_id: str, edit_instruction: str, status_p
         st.error(f"❌ Test case {test_case_id} not found.")
         return None, None
 
-    original_block = match.group(1).strip()
-    status_placeholder.update(label="✅ Test case found")
+    original_block = match.group(0).strip()
 
-    # Parse into structured dict
-    fields = parse_test_case_block(original_block)
+    # Parse block safely
+    fields, prefix, numeric_header = parse_test_case_block(original_block)
 
     # Detect which field to edit
-    status_placeholder.update(label="🧠 Detecting target field...")
+    status_placeholder.update(label="🧠 Detecting field to edit...")
     target_field = await detect_target_field(edit_instruction, fields)
 
     if target_field not in fields:
-        st.error(f"❌ Could not detect valid field to edit. LLM returned: {target_field}")
+        st.error(f"❌ Invalid field detected: {target_field}")
         return None, None
 
     original_value = fields[target_field]
 
     # Ask LLM to regenerate ONLY that field value
-    status_placeholder.update(label=f"✏️ Updating field: {target_field}")
+    status_placeholder.update(label=f"✏️ Updating: {target_field}")
 
-    field_edit_prompt = f"""
+    field_prompt = f"""
 You are a strict QA editor.
-
-Edit this field according to the instruction.
 
 Instruction:
 "{edit_instruction}"
@@ -775,23 +798,23 @@ Field Name:
 Original Value:
 {original_value}
 
-Return ONLY the updated field value.
-Do NOT include the field name.
-Do NOT include bullet points.
-Do NOT include any extra text.
+Return ONLY the updated value.
+Do NOT include field name.
+Do NOT include bullets.
+Do NOT include extra text.
 """
 
-    updated_value = await user.initiate_chat(planner, field_edit_prompt)
+    updated_value = await user.initiate_chat(planner, field_prompt)
     updated_value = updated_value.strip()
 
-    # Replace only that field
+    # Update only target field
     fields[target_field] = updated_value
 
-    # Rebuild block safely
-    updated_block = rebuild_test_case_block(fields)
+    # Rebuild block preserving numbering + bullets
+    updated_block = rebuild_test_case_block(fields, prefix, numeric_header)
 
-    # Replace in master string
-    status_placeholder.update(label="🧩 Replacing test case block...")
+    # Replace safely
+    status_placeholder.update(label="🧩 Replacing test case...")
 
     new_full_str, n_subs = re.subn(
         pattern,
@@ -813,6 +836,7 @@ Do NOT include any extra text.
     st.success(f"✅ Test case {test_case_id} updated successfully!")
 
     return original_block, updated_block
+
 
 
 
@@ -990,6 +1014,7 @@ with output_container:
         # Display the raw test cases
 
         st.markdown(st.session_state.all_test_cases_str)
+
 
 
 
