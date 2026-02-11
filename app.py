@@ -701,28 +701,31 @@ async def run_edit_generation(test_case_id: str, edit_instruction: str, status_p
     status_placeholder.update(label=f"✅ Found test case {test_case_id} ({len(current_case)} chars)")
 
     # ---- Construct prompt ----
+
+# ---- Construct prompt (FIXED) ----
     planner_input = f"""
-You are a precise QA test case editor. Your job is to update **EXACTLY ONE** test case and output **NOTHING ELSE**.
+You are a strict QA Test Case Editor.
+Your task is to take an EXISTING test case and apply a specific edit to ONE field, while creating a verbatim copy of all other fields.
 
-**RULES - FOLLOW EXACTLY:**
-1. Output **ONLY** the updated test case block.
-2. Start with `* Test Case ID: {test_case_id}`
-3. Use `* ` prefix for every field (Title, Test Scenario, Testing Type, Test Case, Step-by-step actions, Possible Values, Expected Result).
-4. `Step-by-step actions` = **one single paragraph**, no bullets or numbers.
-5. **NO** explanations or markdown outside the test case.
-6. **DO NOT** modify any other test case.
-7. Keep all existing fields unless the instruction specifically asks to change them.
-8. Dont change any other existing fields of the test case to be editted unless the instruction specifically asks for it. Keep them SAME unless the instruction asks to change a specific field of the testcase
-
-
-**CURRENT TEST CASE:**
+**INPUT DATA:**
+- **Target ID:** {test_case_id}
+- **Edit Instruction:** "{edit_instruction}"
+- **Original Test Case Content:**
 {current_case}
 
-**USER INSTRUCTION:**
-{edit_instruction}
+**OPERATIONAL RULES:**
+1. **Identify the Target Field:** based on the "Edit Instruction", determine which specific field needs to change (e.g., "Step-by-step actions", "Test Case Title", etc.).
+2. **Apply Edit:** Rewrite ONLY that specific field according to the instruction.
+3. **PRESERVE OTHERS (CRITICAL):** For every other field that was NOT mentioned in the instruction, you MUST copy the content **EXACTLY** character-for-character from the "Original Test Case Content".
+   - DO NOT rephrase.
+   - DO NOT summarize.
+   - DO NOT fix grammar in unchanged fields.
+   - Keep the original specific data (Test Data, Expected Results) exactly as is unless told to change them.
+4. **Format:** Output the full valid test case block starting with `* Test Case ID: {test_case_id}`.
 
-**OUTPUT ONLY THE UPDATED BLOCK BELOW:**
+**OUTPUT ONLY THE FULL UPDATED TEST CASE BLOCK BELOW:**
 """
+
 
     # ---- Send to LLM ----
     try:
@@ -982,6 +985,7 @@ with output_container:
         # Display the raw test cases
 
         st.markdown(st.session_state.all_test_cases_str)
+
 
 
 
