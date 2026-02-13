@@ -71,6 +71,7 @@ class GroqOSSAgent:
             def run_completion():
                 completion = groq_client.chat.completions.create(
                     model=self.model_name,
+                    max_tokens=16384,
                     messages=[
                         {"role": "system", "content": self.system_message},
                         {"role": "user", "content": message}
@@ -1024,6 +1025,7 @@ with output_container:
         # Display the raw test cases
 
         st.markdown(st.session_state.all_test_cases_str)
+
 
 
 
