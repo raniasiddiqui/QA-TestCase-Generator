@@ -71,7 +71,7 @@ class GroqOSSAgent:
             def run_completion():
                 completion = groq_client.chat.completions.create(
                     model=self.model_name,
-                    max_tokens=16384,
+                    max_tokens=10000,
                     messages=[
                         {"role": "system", "content": self.system_message},
                         {"role": "user", "content": message}
